@@ -390,6 +390,10 @@ function householdcustomization_shareAddress($contactId, $secondaryContactID) {
 }
 
 function householdcustomization_civicrm_pageRun(&$page) {
+  if (get_class($page) == 'CRM_Contact_Page_View_Summary') {
+    CRM_Core_Resources::singleton()->addStyle('#customFields div.Household_Data { display:none !important }');
+  }
+
   if (get_class($page) == 'CRM_Contact_Page_View_UserDashBoard'
     && $page->_contactId != CRM_Core_Session::singleton()->get('userID')
   ) {
