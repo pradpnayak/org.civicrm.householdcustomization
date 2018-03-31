@@ -167,7 +167,6 @@ function householdcustomization_civicrm_buildForm($formName, &$form) {
  */
 function householdcustomization_civicrm_post($op, $objectName, $objectId, &$objectRef) {
   if ('Profile' == $objectName && in_array($op, ['create', 'edit'])) {
-    CRM_Core_Error::debug_var('$objectRef',$objectRef);
     // create spouse records
     $spouseId = NULL;
     if ((!empty($objectRef['custom_29']) && !empty($objectRef['custom_34']))
@@ -217,6 +216,9 @@ function householdcustomization_civicrm_post($op, $objectName, $objectId, &$obje
       foreach ($customFields as $key => $value) {
         if ($count >= $objectRef['custom_13']) {
           break;
+        }
+        if ((empty($objectRef[$value[0]]) || empty($objectRef[$value[1]])) && empty($objectRef[$value[2]])) {
+          continue;
         }
         $params = [
           'first_name' => CRM_Utils_Array::value($value[0], $objectRef),

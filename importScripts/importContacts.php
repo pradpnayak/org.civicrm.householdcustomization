@@ -19,6 +19,7 @@ Class CRM_JSMW_Import {
   function createContacts() {
     $read = fopen($this->importFullFileName, 'r');
     ini_set('memory_limit', '2048M');
+    ini_set('max_execution_time', 10000000);
     $rows = fgetcsv($read);
     $results = civicrm_api3('StateProvince', 'get', array(
       'return' => array("abbreviation"),
@@ -44,9 +45,9 @@ Class CRM_JSMW_Import {
       }
       list($primaryHouseholdName, $secondaryHouseholdName) = $this->extractHouseholdName($rows[6]);
       $params = [
-        'first_name' => $primaryHouseholdName,
-        'last_name' => $rows[5],
-        'email-Primary' => $rows[22],
+        'first_name' => ucfirst($primaryHouseholdName),
+        'last_name' => ucfirst($rows[5]),
+        'email-Primary' => strtolower($rows[22]),
         'job_title' => $rows[31],
         'phone-1-1' => $rows[11],
         'phone-Primary-2' => $rows[26],
@@ -56,9 +57,8 @@ Class CRM_JSMW_Import {
         'country-Primary' => $country,
         'state_province-Primary' => $state,
         'postal_code-Primary' => $rows[10],
-        'custom_29' => $secondaryHouseholdName,
-        'custom_34' => $rows[5],
-        'custom_30' => $rows[23],
+        'custom_29' => ucfirst($secondaryHouseholdName),
+        'custom_30' => strtolower($rows[23]),
         'custom_33' => $rows[39],
         'custom_32' => $rows[27],
         'custom_31' => $rows[25],
@@ -68,29 +68,32 @@ Class CRM_JSMW_Import {
         'custom_43' => $rows[34],
         'external_identifier' => $rows[0],
       ];
+      if (!empty($secondaryHouseholdName)) {
+        $params['custom_34'] = ucfirst($rows[5]);
+      }
       $childCount = 0;
       if (!empty($rows[12])) {
         $params += [
-          'custom_14' => $rows[12],
-          'custom_15' => $rows[5],
-          'custom_35' => $rows[37],
+          'custom_14' => ucfirst($rows[12]),
+          'custom_15' => ucfirst($rows[5]),
+          'custom_35' => strtolower($rows[37]),
           'custom_24' => $rows[13],
         ];
         $childCount++;
       }
       if (!empty($rows[14])) {
         $params += [
-        'custom_16' => $rows[14],
-        'custom_17' => $rows[5],
-        'custom_36' => $rows[38],
+        'custom_16' => ucfirst($rows[14]),
+        'custom_17' => ucfirst($rows[5]),
+        'custom_36' => strtolower($rows[38]),
         'custom_25' => $rows[15],
         ];
         $childCount++;
       }
       if (!empty($rows[16])) {
         $params += [
-        'custom_18' => $rows[16],
-        'custom_19' => $rows[5],
+        'custom_18' => ucfirst($rows[16]),
+        'custom_19' => ucfirst($rows[5]),
         'custom_37' => NULL,
         'custom_26' => $rows[17],
         ];
@@ -98,8 +101,8 @@ Class CRM_JSMW_Import {
       }
       if (!empty($rows[18])) {
         $params += [
-        'custom_20' => $rows[18],
-        'custom_22' => $rows[5],
+        'custom_20' => ucfirst($rows[18]),
+        'custom_22' => ucfirst($rows[5]),
         'custom_38' => NULL,
         'custom_27' => $rows[19],
         ];
@@ -107,8 +110,8 @@ Class CRM_JSMW_Import {
       }
       if (!empty($rows[20])) {
         $params += [
-        'custom_21' => $rows[20],
-        'custom_23' => $rows[5],
+        'custom_21' => ucfirst($rows[20]),
+        'custom_23' => ucfirst($rows[5]),
         'custom_39' => NULL,
         'custom_28' => $rows[21],
         ];
@@ -121,6 +124,7 @@ Class CRM_JSMW_Import {
           $params[$key] = date('Ymd', strtotime($params[$key]));
         }
       }
+      $params = array_filter($params);
       CRM_Contact_BAO_Contact::createProfileContact($params, $fields);
     }
   }
@@ -133,6 +137,7 @@ Class CRM_JSMW_Import {
   function createMemberships() {
     $read = fopen($this->importFullFileName, 'r');
     ini_set('memory_limit', '2048M');
+    ini_set('max_execution_time', 10000000);
     $rows = fgetcsv($read);
     while ($rows = fgetcsv($read)) {
       $contactId = CRM_Core_DAO::singleValueQuery("
@@ -141,7 +146,9 @@ Class CRM_JSMW_Import {
             AND cr.relationship_type_id = 7 AND cc.external_identifier = {$rows[0]}
       ");
       if (!$contactId) {
-        continue;
+        $contactId = CRM_Core_DAO::singleValueQuery("
+          SELECT id FROM civicrm_contact WHERE external_identifier = {$rows[0]}
+        ");
       }
       $params = array(
         'contact_id' => $contactId,
@@ -151,6 +158,9 @@ Class CRM_JSMW_Import {
         'custom_44' => $rows[3],
         'custom_45' => $rows[4],
       );
+      if (!empty($rows[1])) {
+        $params['join_date'] = date('Ymd', strtotime($rows[1]));
+      }
       civicrm_api3('Membership', 'create', $params);
     }
   }
