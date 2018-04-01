@@ -167,6 +167,6 @@ Class CRM_JSMW_Import {
 }
 
 $import = new CRM_JSMW_Import();
-//$import->createContacts();
+$import->createContacts();
 $import->createMemberships();
 exit;

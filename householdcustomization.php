@@ -421,19 +421,27 @@ function householdcustomization_civicrm_pageRun(&$page) {
       CRM_Core_Resources::singleton()->addVars('paymentLinks', $paymentLinks);
     }
     $eventRows = $page->get_template_vars('event_rows');
-    $ogContactId = $page->_contactId;
     $result = CRM_Core_DAO::executeQuery("
-      SELECT contact_id_a FROM civicrm_relationship WHERE contact_id_b = {$ogContactId}
+      SELECT contact_id_a FROM civicrm_relationship WHERE contact_id_b = {$page->_contactId}
         AND relationship_type_id IN (7, 8)
     ");
     while ($result->fetch()) {
       $contactId = $result->contact_id_a;
-      $page->_contactId = $_REQUEST['id'] = $contactId;
-      $eventDashBoard = new CRM_Event_Page_UserDashboard();
-      $eventDashBoard->run();
+      $controller = new CRM_Core_Controller_Simple(
+        'CRM_Event_Form_Search',
+        ts('Events'),
+        NULL,
+        FALSE, FALSE, TRUE, FALSE
+      );
+      $controller->setEmbedded(TRUE);
+      $controller->reset();
+      $controller->set('context', 'user');
+      $controller->set('cid', $contactId);
+      $controller->set('force', 1);
+      $controller->process();
+      $controller->run();
       $eventRows = array_merge($eventRows, $page->get_template_vars('event_rows'));
     }
-    $page->_contactId = $_REQUEST['id'] = $ogContactId;
     $page->assign('event_rows', $eventRows);
   }
 }
